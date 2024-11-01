@@ -1,44 +1,42 @@
 use nannou::prelude::*;
+use rand::Rng;
+
+struct Walker {
+    position: Point2,
+    size: f32,
+    color: Rgba,
+}
 
 struct Model {
-    position: Point2,
-    size: f32
+    walkers: Vec<Walker>
 }
 
 fn model(_app: &App) -> Model {
-    Model {
-        position: pt2(0.0, 0.0),
-        size: 10.0
-    }
+    let mut walkers = Vec::new();
+    walkers.push(create_walker());
+    Model { walkers }
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
     let boundary = app.window_rect();
-    let rand_dir_x: bool = random();
-    let rand_dir_y: bool = random();
+    let next_gen: bool = random();
 
-    model.position.x += if rand_dir_x { model.size } else { -model.size };
-    model.position.y += if rand_dir_y { model.size } else { -model.size };
+    if next_gen { model.walkers.push(create_walker()); }
 
-    if model.position.x < boundary.left() {
-        model.position.x += model.size;
-    } else if model.position.x > boundary.right() {
-        model.position.x -= model.size;
-    };
-
-    if model.position.y < boundary.bottom() {
-        model.position.y += model.size;
-    } else if model.position.y > boundary.top() {
-        model.position.y -= model.size;
-    };
+    for walker in &mut model.walkers {
+        move_walker(walker, boundary);
+    }
 }
 
 fn view(app: &App, model: &Model, frame: Frame) {
-    // frame.clear(PURPLE);
-
     let draw = app.draw();
-    draw.ellipse().color(RED).w_h(model.size, model.size).xy(model.position);
 
+    for walker in &model.walkers {
+        draw.ellipse()
+            .color(walker.color)
+            .w_h(walker.size, walker.size)
+            .xy(walker.position);
+    }
     draw.to_frame(app, &frame).unwrap();
 }
 
@@ -47,4 +45,64 @@ fn main() {
         .update(update)
         .simple_window(view)
         .run();
+}
+
+fn create_walker() -> Walker {
+    let mut rand_gen = rand::thread_rng();
+    let x = 0.0;
+    let y = 0.0;
+    Walker {
+        position: pt2(x, y),
+        size: 3.0,
+        color: rgba(rand_gen.gen(), rand_gen.gen(), rand_gen.gen(), 0.1),
+    }
+}
+
+fn move_walker(walker: &mut Walker, boundary: Rect) {
+    let mut rand_gen = rand::thread_rng();
+    let direction = rand_gen.gen_range(1..=8);
+
+    match direction {
+        1 => { 
+            walker.position.x -= walker.size;
+        }
+        2 => {
+            walker.position.x -= walker.size;
+            walker.position.y += walker.size;
+        }
+        3 => { 
+            walker.position.y += walker.size;
+        }
+        4 => {
+            walker.position.x += walker.size;
+            walker.position.y += walker.size;
+        }
+        5 => {
+            walker.position.x += walker.size;
+        }
+        6 => {
+            walker.position.x += walker.size;
+            walker.position.y -= walker.size;
+        }
+        7 => {
+            walker.position.y -= walker.size;
+        }
+        8 => {
+            walker.position.x -= walker.size;
+            walker.position.y -= walker.size;
+        }
+        _ => {}
+    }
+
+    if walker.position.x < boundary.left() {
+        walker.position.x += walker.size;
+    } else if walker.position.x > boundary.right() {
+        walker.position.x -= walker.size;
+    };
+
+    if walker.position.y < boundary.bottom() {
+        walker.position.y += walker.size;
+    } else if walker.position.y > boundary.top() {
+        walker.position.y -= walker.size;
+    };
 }
